@@ -33,7 +33,7 @@ defmodule HLX.MixProject do
     [
       {:media_codecs, "~> 0.10.0"},
       {:ex_mp4, "~> 0.14.0"},
-      {:ex_m3u8, "~> 0.15.0"},
+      {:ex_m3u8, "~> 0.16.0"},
       {:mpeg_ts, "~> 3.3.5"},
       {:qex, "~> 0.5.1"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
