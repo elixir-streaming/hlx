@@ -77,13 +77,13 @@ defmodule HLX.Muxer.CMAF do
         part_duration_s = traf_dur / state.tracks[track_id].timescale
         parts_duration = Map.update!(parts_duration, track_id, &(&1 + traf_dur))
 
-        moof = %Box.Moof{moof | traf: [traf | moof.traf]}
-        mdat = %Box.Mdat{mdat | content: [Enum.map(samples, & &1.payload) | mdat.content]}
+        moof = %{moof | traf: [traf | moof.traf]}
+        mdat = %{mdat | content: [Enum.map(samples, & &1.payload) | mdat.content]}
         {moof, mdat, parts_duration, max(part_duration, part_duration_s)}
       end)
 
-    moof = %Box.Moof{moof | traf: Enum.reverse(moof.traf)}
-    mdat = %Box.Mdat{mdat | content: Enum.reverse(mdat.content)}
+    moof = %{moof | traf: Enum.reverse(moof.traf)}
+    mdat = %{mdat | content: Enum.reverse(mdat.content)}
 
     moof = Box.Moof.update_base_offsets(moof, Box.size(moof) + @mdat_header_size, true)
 
@@ -175,14 +175,14 @@ defmodule HLX.Muxer.CMAF do
         traf = Box.Traf.finalize(traf, true)
         data = Enum.reverse(data)
 
-        moof = %Box.Moof{moof | traf: [traf | moof.traf]}
-        mdat = %Box.Mdat{mdat | content: [data | mdat.content]}
+        moof = %{moof | traf: [traf | moof.traf]}
+        mdat = %{mdat | content: [data | mdat.content]}
 
         {moof, mdat}
       end)
 
-    moof = %Box.Moof{moof | traf: Enum.reverse(moof.traf)}
-    mdat = %Box.Mdat{mdat | content: Enum.reverse(mdat.content)}
+    moof = %{moof | traf: Enum.reverse(moof.traf)}
+    mdat = %{mdat | content: Enum.reverse(mdat.content)}
 
     {moof, mdat}
   end
@@ -190,7 +190,7 @@ defmodule HLX.Muxer.CMAF do
   defp finalize_segments(segments, moof, mdat) do
     {segments, _size} =
       Enum.map_reduce(moof.traf, 0, fn traf, acc ->
-        segment = segments[traf.tfhd.track_id]
+        %Box.Sidx{} = segment = segments[traf.tfhd.track_id]
 
         segment = %Box.Sidx{
           segment

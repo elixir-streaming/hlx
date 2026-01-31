@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+* Use max part target duration of all renditions to calculate part hold back.
+* Add ci GitHub action 
+
 ## v0.5.0 - 2025-12-24
 
 * Add server control option to writer.
