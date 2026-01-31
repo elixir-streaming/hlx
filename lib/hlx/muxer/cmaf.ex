@@ -88,13 +88,14 @@ defmodule HLX.Muxer.CMAF do
     moof = Box.Moof.update_base_offsets(moof, Box.size(moof) + @mdat_header_size, true)
     fragment = Box.serialize([moof, mdat])
 
-    {fragment, part_duration_s, %{state | part_duration: parts_duration, fragments: [fragment | state.fragments]}}
+    {fragment, part_duration_s,
+     %{state | part_duration: parts_duration, fragments: [fragment | state.fragments]}}
   end
 
   @impl true
   def flush_segment(%{fragments: []} = state) do
     {moof, mdat} = build_moof_and_mdat(state)
-    
+
     base_data_offset = Box.size(moof) + @mdat_header_size
 
     moof = Box.Moof.update_base_offsets(moof, base_data_offset, true)
@@ -149,7 +150,8 @@ defmodule HLX.Muxer.CMAF do
     mdat = %Box.Mdat{content: []}
 
     {moof, mdat} =
-      Enum.reduce(state.current_fragments, {moof, mdat}, fn {_track_id, {traf, data}}, {moof, mdat} ->
+      Enum.reduce(state.current_fragments, {moof, mdat}, fn {_track_id, {traf, data}},
+                                                            {moof, mdat} ->
         traf = Box.Traf.finalize(traf, true)
         data = Enum.reverse(data)
 
