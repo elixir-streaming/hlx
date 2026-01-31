@@ -4,6 +4,8 @@
 
 * Use max part target duration of all renditions to calculate part hold back.
 * Add ci GitHub action 
+* Bump ex_m3u8 dependency.
+* Improve fragments (moof/mdat) generation in low latency HLS.
 
 ## v0.5.0 - 2025-12-24
 

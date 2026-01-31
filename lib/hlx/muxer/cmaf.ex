@@ -13,12 +13,12 @@ defmodule HLX.Muxer.CMAF do
   @type t :: %__MODULE__{
           tracks: %{non_neg_integer() => ExMP4.Track.t()},
           header: ExMP4.Box.t(),
-          segments: map(),
-          fragments: map(),
+          current_fragments: map(),
+          fragments: [binary()],
           part_duration: map()
         }
 
-  defstruct [:tracks, :header, :segments, :fragments, :part_duration]
+  defstruct [:tracks, :header, :current_fragments, :fragments, :part_duration]
 
   @impl true
   def init(tracks) do
@@ -27,8 +27,8 @@ defmodule HLX.Muxer.CMAF do
     %__MODULE__{
       tracks: tracks,
       header: build_header(Map.values(tracks)),
-      segments: new_segments(tracks),
-      fragments: new_fragments(tracks),
+      current_fragments: new_fragments(tracks),
+      fragments: [],
       part_duration: Map.new(tracks, fn {id, _track} -> {id, 0} end)
     }
   end
@@ -41,11 +41,11 @@ defmodule HLX.Muxer.CMAF do
   @impl true
   def push(sample, state) do
     fragments =
-      Map.update!(state.fragments, sample.track_id, fn {traf, data} ->
+      Map.update!(state.current_fragments, sample.track_id, fn {traf, data} ->
         {Box.Traf.store_sample(traf, sample), [sample.payload | data]}
       end)
 
-    %{state | fragments: fragments}
+    %{state | current_fragments: fragments}
   end
 
   @impl true
@@ -86,20 +86,15 @@ defmodule HLX.Muxer.CMAF do
     mdat = %{mdat | content: Enum.reverse(mdat.content)}
 
     moof = Box.Moof.update_base_offsets(moof, Box.size(moof) + @mdat_header_size, true)
+    fragment = Box.serialize([moof, mdat])
 
-    # push samples to main segments
-    state =
-      Enum.reduce(parts, state, fn {_track_id, samples}, state ->
-        Enum.reduce(samples, state, &push/2)
-      end)
-
-    {Box.serialize([moof, mdat]), part_duration_s, %{state | part_duration: parts_duration}}
+    {fragment, part_duration_s,
+     %{state | part_duration: parts_duration, fragments: [fragment | state.fragments]}}
   end
 
   @impl true
-  def flush_segment(state) do
+  def flush_segment(%{fragments: []} = state) do
     {moof, mdat} = build_moof_and_mdat(state)
-    segments = finalize_segments(state.segments, moof, mdat)
 
     base_data_offset = Box.size(moof) + @mdat_header_size
 
@@ -114,16 +109,14 @@ defmodule HLX.Muxer.CMAF do
         )
       end)
 
-    segment_data = Box.serialize([segments, moof, mdat])
-
-    state = %{
-      state
-      | tracks: tracks,
-        fragments: new_fragments(tracks),
-        segments: new_segments(tracks)
-    }
+    segment_data = Box.serialize([moof, mdat])
+    state = %{state | tracks: tracks, current_fragments: new_fragments(tracks)}
 
     {segment_data, state}
+  end
+
+  def flush_segment(%{fragments: fragments} = state) do
+    {Enum.reverse(fragments), %{state | fragments: []}}
   end
 
   defp build_header(tracks) do
@@ -138,20 +131,6 @@ defmodule HLX.Muxer.CMAF do
         trex: Enum.map(tracks, & &1.trex)
       }
     }
-  end
-
-  defp new_segments(tracks) do
-    Map.new(tracks, fn {track_id, track} ->
-      sidx = %Box.Sidx{
-        reference_id: track_id,
-        timescale: track.timescale,
-        earliest_presentation_time: track.duration,
-        first_offset: 0,
-        entries: []
-      }
-
-      {track_id, sidx}
-    end)
   end
 
   defp new_fragments(tracks) do
@@ -171,7 +150,8 @@ defmodule HLX.Muxer.CMAF do
     mdat = %Box.Mdat{content: []}
 
     {moof, mdat} =
-      Enum.reduce(state.fragments, {moof, mdat}, fn {_track_id, {traf, data}}, {moof, mdat} ->
+      Enum.reduce(state.current_fragments, {moof, mdat}, fn {_track_id, {traf, data}},
+                                                            {moof, mdat} ->
         traf = Box.Traf.finalize(traf, true)
         data = Enum.reverse(data)
 
@@ -185,31 +165,5 @@ defmodule HLX.Muxer.CMAF do
     mdat = %{mdat | content: Enum.reverse(mdat.content)}
 
     {moof, mdat}
-  end
-
-  defp finalize_segments(segments, moof, mdat) do
-    {segments, _size} =
-      Enum.map_reduce(moof.traf, 0, fn traf, acc ->
-        %Box.Sidx{} = segment = segments[traf.tfhd.track_id]
-
-        segment = %Box.Sidx{
-          segment
-          | first_offset: acc,
-            entries: [
-              %{
-                reference_type: 0,
-                referenced_size: Box.size(moof) + Box.size(mdat),
-                subsegment_duration: Box.Traf.duration(traf),
-                starts_with_sap: 1,
-                sap_type: 0,
-                sap_delta_time: 0
-              }
-            ]
-        }
-
-        {segment, acc + Box.size(segment)}
-      end)
-
-    Enum.reverse(segments)
   end
 end
