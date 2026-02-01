@@ -21,7 +21,7 @@ defmodule HLX.Track do
   alias MediaCodecs.AV1.OBU
   alias MediaCodecs.{H264, H265, MPEG4}
 
-  @codecs [:h264, :h265, :hevc, :aac, :av1]
+  @codecs [:h264, :h265, :hevc, :aac, :av1, :opus]
 
   @type id :: non_neg_integer()
   @type codec :: :h264 | :h265 | :hevc | :aac | :unknown
@@ -99,6 +99,20 @@ defmodule HLX.Track do
         sample_rate: priv_data.sampling_frequency,
         priv_data: Box.Esds.new(audio_sepecific_config)
     }
+  end
+
+  def to_mp4_track(%__MODULE__{codec: :opus} = track) do
+    dops = %Box.Dops{
+      version: 0,
+      input_sample_rate: 48_000,
+      pre_skip: 0,
+      output_channel_count: 2,
+      output_gain: 0,
+      channel_mapping_table: nil,
+      channel_mapping_family: 0
+    }
+
+    %{set_common_fields(track) | channels: 2, sample_rate: 48_000, priv_data: dops}
   end
 
   @doc false

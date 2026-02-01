@@ -183,6 +183,6 @@ defmodule HLX.Writer.TracksMuxer do
   defp all_tracks_ready?(tracks) do
     tracks
     |> Map.values()
-    |> Enum.all?(&(&1.priv_data != nil))
+    |> Enum.all?(&(&1.codec == :opus or &1.priv_data != nil))
   end
 end
