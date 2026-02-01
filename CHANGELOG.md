@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.6.0 - 2026-02-01
 
 * Use max part target duration of all renditions to calculate part hold back.
 * Add ci GitHub action 
