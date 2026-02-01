@@ -244,13 +244,13 @@ defmodule HLX.Writer.Variant do
       referenced_renditions
       |> List.flatten()
       |> Stream.flat_map(&TracksMuxer.tracks(&1.tracks_muxer))
-      |> Enum.map(& &1.mime)
+      |> Enum.map(&mime/1)
 
     tracks = TracksMuxer.tracks(variant.tracks_muxer)
 
     codecs =
       tracks
-      |> Stream.map(& &1.mime)
+      |> Stream.map(&mime/1)
       |> Stream.concat(referenced_codecs)
       |> Stream.uniq()
       |> Enum.join(",")
@@ -263,4 +263,7 @@ defmodule HLX.Writer.Variant do
 
     {codecs, resolution}
   end
+
+  defp mime(%{mime: nil, codec: :opus}), do: "Opus"
+  defp mime(%{mime: mime}), do: mime
 end
