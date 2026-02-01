@@ -87,9 +87,11 @@ defmodule HLX.Writer.Variant do
 
   @spec push_parts(t(), TracksMuxer.parts()) :: t()
   def push_parts(variant, parts) do
-    {data, duration, tracks_muxer} = TracksMuxer.push_parts(variant.tracks_muxer, parts)
+    {{data, duration, independant?}, tracks_muxer} =
+      TracksMuxer.push_parts(variant.tracks_muxer, parts)
+
     {uri, storage} = Storage.Segment.store_part(data, variant.storage)
-    {part, playlist} = MediaPlaylist.add_part(variant.playlist, uri, duration)
+    {part, playlist} = MediaPlaylist.add_part(variant.playlist, uri, duration, independant?)
 
     {part,
      %{
