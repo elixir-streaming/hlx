@@ -34,7 +34,7 @@ The package can be installed by adding `hlx` to your list of dependencies in `mi
 ```elixir
 def deps do
   [
-    {:hlx, "~> 0.5.0"}
+    {:hlx, "~> 0.6.0"}
   ]
 end
 ```
