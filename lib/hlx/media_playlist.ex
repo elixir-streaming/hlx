@@ -64,17 +64,23 @@ defmodule HLX.MediaPlaylist do
     add_segment(%{state | pending_segment: nil}, pending_segment)
   end
 
-  @spec add_part(t(), String.t(), number()) :: {Part.t(), t()}
-  def add_part(%{pending_segment: nil} = playlist, part_uri, part_duration) do
-    add_part(%{playlist | pending_segment: %Segment{}, part_index: 0}, part_uri, part_duration)
+  @spec add_part(t(), String.t(), number(), boolean()) :: {Part.t(), t()}
+  def add_part(%{pending_segment: nil} = playlist, part_uri, part_duration, independent?) do
+    add_part(
+      %{playlist | pending_segment: %Segment{}, part_index: 0},
+      part_uri,
+      part_duration,
+      independent?
+    )
   end
 
-  def add_part(%{pending_segment: segment} = playlist, part_uri, part_duration) do
+  def add_part(%{pending_segment: segment} = playlist, part_uri, part_duration, independent?) do
     part = %Part{
       uri: part_uri,
       duration: part_duration,
       index: playlist.part_index,
-      segment_index: segment_count(playlist)
+      segment_index: segment_count(playlist),
+      independent?: independent?
     }
 
     {part,
@@ -158,19 +164,17 @@ defmodule HLX.MediaPlaylist do
   end
 
   defp delete_old_parts(state) do
-    if not is_nil(state.part_target_duration) and state.segment_count > 2 do
+    if not is_nil(state.part_target_duration) and state.segment_count > 1 do
       {seg_1, segments} = Qex.pop_back!(state.segments)
       {seg_2, segments} = Qex.pop_back!(segments)
-      {seg_3, segments} = Qex.pop_back!(segments)
 
       state =
         segments
-        |> Qex.push(%{seg_3 | parts: []})
-        |> Qex.push(seg_2)
+        |> Qex.push(%{seg_2 | parts: []})
         |> Qex.push(seg_1)
         |> then(&%{state | segments: &1})
 
-      {state, seg_3.parts}
+      {state, seg_2.parts}
     else
       {state, []}
     end

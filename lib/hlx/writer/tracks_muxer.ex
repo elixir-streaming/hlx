@@ -103,10 +103,15 @@ defmodule HLX.Writer.TracksMuxer do
     {data, part_duration, muxer_state} =
       tracks_muxer.muxer_mod.push_parts(parts, tracks_muxer.muxer_state)
 
-    tracks_duration =
-      Map.new(parts, fn {track_id, samples} ->
-        part_duration = Enum.reduce(samples, 0, &(&1.duration + &2))
-        {track_id, tracks_muxer.track_durations[track_id] + part_duration}
+    {tracks_duration, independent_segment?} =
+      Enum.reduce(parts, {tracks_muxer.track_durations, true}, fn {track_id, samples},
+                                                                  {durations, independent?} ->
+        durations =
+          Map.update!(durations, track_id, fn d ->
+            d + Enum.reduce(samples, 0, &(&1.duration + &2))
+          end)
+
+        {durations, independent? and hd(samples).sync?}
       end)
 
     tracks_muxer = %{
@@ -115,7 +120,7 @@ defmodule HLX.Writer.TracksMuxer do
         track_durations: tracks_duration
     }
 
-    {data, part_duration, tracks_muxer}
+    {{data, part_duration, independent_segment?}, tracks_muxer}
   end
 
   @spec flush(t()) :: {iodata(), non_neg_integer(), t()}

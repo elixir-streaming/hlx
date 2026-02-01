@@ -10,10 +10,11 @@ defmodule HLX.Part do
           size: non_neg_integer(),
           duration: number(),
           index: non_neg_integer(),
-          segment_index: non_neg_integer()
+          segment_index: non_neg_integer(),
+          independent?: boolean()
         }
 
-  defstruct [:uri, :size, :duration, :index, :segment_index]
+  defstruct [:uri, :size, :duration, :index, :segment_index, independent?: false]
 
   @spec new(Keyword.t()) :: t()
   def new(opts) do
@@ -27,7 +28,7 @@ defmodule HLX.Part do
       Serializer.serialize(%Tags.Part{
         uri: part.uri,
         duration: part.duration,
-        independent?: part.index == 0
+        independent?: part.independent?
       })
     end
   end
