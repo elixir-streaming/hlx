@@ -1,7 +1,7 @@
 defmodule HLX.MixProject do
   use Mix.Project
 
-  @version "0.6.0"
+  @version "0.6.1"
   @github_url "https://github.com/gBillal/hlx"
 
   def project do
@@ -32,7 +32,7 @@ defmodule HLX.MixProject do
   defp deps do
     [
       {:media_codecs, "~> 0.10.0"},
-      {:ex_mp4, "~> 0.14.0"},
+      {:ex_mp4, "~> 0.15.0"},
       {:ex_m3u8, "~> 0.16.0"},
       {:mpeg_ts, "~> 3.3.5"},
       {:qex, "~> 0.5.1"},
