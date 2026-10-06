@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.1 - 2026-10-06
+
+* Upgrade dependencies.
+
 ## v0.6.0 - 2026-02-01
 
 * Use max part target duration of all renditions to calculate part hold back.
